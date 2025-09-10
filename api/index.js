@@ -32,6 +32,17 @@ router.get('/posts/', async (req, res) => {
     res.json(await postsController.getAll());
 });
 
+router.get('/posts/user/:id', async (req, res) => {
+    const posts = await postsController.getByUserId(req.params.id);
+    res.json(posts);
+});
+
+router.get('/posts/latest/:limit', async (req, res) => {
+    const limit = parseInt(req.params.limit);
+    const posts = await postsController.getLatestPosts(limit);
+    res.json(posts);
+});
+
 
 router.get('/posts/:id', async (req, res) => {
     const post = await postsController.getById(req.params.id);
@@ -81,8 +92,8 @@ router.post('/users/', async (req, res) => {
             email: user.email,
             id: user.id
         }
-        const accessToken = generateToken(payloadAccess, '15m');
-        const refreshToken = generateToken(payloadRefresh, '15d');
+        const accessToken = generateToken(payloadAccess, '15d');
+        const refreshToken = generateToken(payloadRefresh, '30d');
         console.log(accessToken, refreshToken);
         res.json({ accessToken, refreshToken });
     } else {
@@ -128,8 +139,8 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 id: user.id
             }
-            const accessToken = generateToken(payloadAccess, '1d');
-            const refreshToken = generateToken(payloadRefresh, '15d');
+            const accessToken = generateToken(payloadAccess, '15d');
+            const refreshToken = generateToken(payloadRefresh, '30d');
             res.json({ accessToken, refreshToken, });
         } else {
             res.json("User does not exist");
@@ -151,7 +162,7 @@ router.post('/refresh', async (req, res) => {
                 email: user.email,
                 id: user.id
             }
-            const accessToken = generateToken(payloadAccess, '15m');
+            const accessToken = generateToken(payloadAccess, '15d');
             res.json({ accessToken });
         } else {
             res.json("User does not exist");

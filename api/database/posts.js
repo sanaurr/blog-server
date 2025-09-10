@@ -19,6 +19,25 @@ exports.getById = async (id) => {
   return post.data();
 }
 
+exports.getByUserId = async (userId) => {
+  const posts = [];
+  const querySnapshot = await db.collection('posts').where('authorid', '==', userId).get();
+  querySnapshot.forEach((doc) => {
+    posts.push({ ...doc.data(), id: doc.id });
+  });
+  console.log(posts);
+  return posts;
+}
+
+exports.getLatestPosts = async (limit) => {
+  const posts = [];
+  const querySnapshot = await db.collection('posts').orderBy('date', 'desc').limit(limit).get();
+  querySnapshot.forEach((doc) => {
+    posts.push({ ...doc.data(), id: doc.id });
+  });
+  return posts;
+}
+
 exports.edit = async (id, post) => {
   const date = new Date().getTime();
   await db.collection('posts').doc(id).set({...post, date});
