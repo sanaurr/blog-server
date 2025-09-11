@@ -2,8 +2,18 @@ const { getFirestore } = require("firebase-admin/firestore");
 
 const db = getFirestore();
 
-exports.getAll = async () => {
+exports.getAll = async (category) => {
   const posts = [];
+  if (category == null || category == undefined || category == '') {
+    return [];
+  }
+  if (category !== 'All') {
+    const querySnapshot = await db.collection('posts').where('category', '==', category).get();
+     querySnapshot.forEach((doc) => {
+       posts.push({ ...doc.data(), id: doc.id });
+     });
+     return posts;
+  }
   const querySnapshot = await db.collection('posts').get();
   querySnapshot.forEach((doc) => {
     posts.push({ ...doc.data(), id: doc.id });

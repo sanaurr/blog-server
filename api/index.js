@@ -25,11 +25,11 @@ router.post('/posts/', verifyToken, async (req, res) => {
 });
 
 
-router.get('/posts/', async (req, res) => {
-    const posts = await postsController.getAll();
+router.get('/posts/category/:category', async (req, res) => {
+    const posts = await postsController.getAll(req.params.category);
     console.log(posts, 'all posts');
     
-    res.json(await postsController.getAll());
+    res.json(posts);
 });
 
 router.get('/posts/user/:id', async (req, res) => {
@@ -44,7 +44,7 @@ router.get('/posts/latest/:limit', async (req, res) => {
 });
 
 
-router.get('/posts/:id', async (req, res) => {
+router.get('/posts/id/:id', async (req, res) => {
     const post = await postsController.getById(req.params.id);
 
     res.json(post);
