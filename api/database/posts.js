@@ -1,5 +1,5 @@
 const { getFirestore } = require("firebase-admin/firestore");
-
+const cheerio = require("cheerio");
 const db = getFirestore();
 
 exports.getAll = async (category) => {
@@ -55,4 +55,79 @@ exports.edit = async (id, post) => {
 
 exports.delete = async (id) => {
   await db.collection('posts').doc(id).delete();
+}
+// AIzaSyC3_puvN9lkvXHxiXI5pd4fmJVrn8Ry1Yw;
+exports.generate = async (prompt , token) => {
+  // Placeholder for AI generation logic  
+  try {
+     const response = await fetch(
+       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+       {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+           "X-goog-api-key": "AIzaSyC3_puvN9lkvXHxiXI5pd4fmJVrn8Ry1Yw",
+         },
+         body: JSON.stringify({
+           contents: [
+             {
+               parts: [{ text: prompt }],
+             },
+           ],
+         }),
+       }
+     );
+
+    const data = await response.json();
+    console.log("✅ Gemini Response:", data);
+    const blog = extractBlog(data);
+    console.log("Generated Blog:", blog);
+    blog.content = removeH1Tags(blog.content);
+    console.log("Generated Blog:", blog);
+
+    return blog;
+    
+  } catch (err) {
+    console.error("Error generating text:", err);
+  }
+};
+function extractBlog(rawResponse) {
+  try {
+    let text = rawResponse.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    // Remove markdown code block wrappers if present
+    text = text.replace(/```json|```/g, "").trim();
+
+    // Clean up invalid control characters
+    text = text.replace(/[\u0000-\u001F]+/g, "");
+
+    // Sometimes Gemini returns “fancy quotes” → normalize
+    text = text.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+
+    // Parse safely
+    const parsed = JSON.parse(text);
+    console.log("✅ Parsed Blog:", parsed);
+    return parsed;
+  } catch (err) {
+    console.error("❌ Failed to parse Gemini output:", err);
+    console.log(
+      "Raw text was:",
+      rawResponse.candidates?.[0]?.content?.parts?.[0]?.text
+    );
+    return null;
+  }
+}
+
+function removeH1Tags(htmlString) {
+  if (!htmlString || htmlString.trim() === "") {
+    return "";
+  }
+
+   const $ = cheerio.load(htmlString);
+
+   // Completely remove <h1> and its contents
+   $("h1").remove();
+
+   // Return updated HTML string
+   return $.html();
 }

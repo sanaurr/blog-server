@@ -1,8 +1,8 @@
-const express = require('express');
-const { postsController, userController } = require('./database');
-const multer = require('multer');
-const cors = require('cors');
-const { generateToken, verifyToken } = require('./token');
+const express = require("express");
+const { postsController, userController } = require("./database");
+const multer = require("multer");
+const cors = require("cors");
+const { generateToken, verifyToken } = require("./token");
 const server = express();
 
 const port = 3005;
@@ -11,174 +11,208 @@ const upload = multer();
 
 const router = express.Router();
 
-
 server.use(cors());
 router.use(cors());
+server.use(express.json());
+router.use(express.json());
 
-
-router.post('/posts/', verifyToken, async (req, res) => {
-    const post = req.body;
-    console.log(req.header);
-    console.log(req.body, 'body');
-    await postsController.create(post);
-    res.json("Post created successfully");
+router.post("/posts/", verifyToken, async (req, res) => {
+  const post = req.body;
+  console.log(req.header);
+  console.log(req.body, "body");
+  await postsController.create(post);
+  res.json("Post created successfully");
 });
 
+router.post("/assistant/generate", verifyToken, async (req, res) => {
+    console.log(req.body,"ai body");
+  const { topic, length, category } = req.body;
 
-router.get('/posts/category/:category', async (req, res) => {
-    const posts = await postsController.getAll(req.params.category);
-    console.log(posts, 'all posts');
+  const prompt = `Write a blog post about "${topic}".
+1. Suggest a catchy blog TITLE.
+2. Write the blog CONTENT (about ${length} words).
+3. The blog should be in the category of "${category}".
+4. content should be formatted using HTML tags.
+5. Don't include the title in the content body.
+  Return in JSON format:
+{
+  "title": "...",
+  "content": "..."
+}`;
+  const response = await postsController.generate(prompt);
+      res.json(response);
     
-    res.json(posts);
 });
 
-router.get('/posts/user/:id', async (req, res) => {
-    const posts = await postsController.getByUserId(req.params.id);
-    res.json(posts);
+router.get("/posts/category/:category", async (req, res) => {
+  const posts = await postsController.getAll(req.params.category);
+//   console.log(posts, "all posts");
+
+  res.json(posts);
 });
 
-router.get('/posts/latest/:limit', async (req, res) => {
-    const limit = parseInt(req.params.limit);
-    const posts = await postsController.getLatestPosts(limit);
-    res.json(posts);
+router.get("/posts/user/:id", async (req, res) => {
+  const posts = await postsController.getByUserId(req.params.id);
+  res.json(posts);
 });
 
-
-router.get('/posts/id/:id', async (req, res) => {
-    const post = await postsController.getById(req.params.id);
-
-    res.json(post);
+router.get("/posts/latest/:limit", async (req, res) => {
+  const limit = parseInt(req.params.limit);
+  const posts = await postsController.getLatestPosts(limit);
+  res.json(posts);
 });
 
-router.put('/posts/:id', verifyToken, async (req, res) => {
-    const id = req.params.id;
-    const post = req.body;
-    await postsController.edit(id, post);
-    res.json("Post updated successfully");
+router.get("/posts/id/:id", async (req, res) => {
+  const post = await postsController.getById(req.params.id);
+
+  res.json(post);
 });
 
-
-router.delete('/posts/:id', async (req, res) => {
-    const id = req.params.id;
-    await postsController.delete(id);
-    res.json("Post deleted successfully");
+router.put("/posts/:id", verifyToken, async (req, res) => {
+  const id = req.params.id;
+  const post = req.body;
+  await postsController.edit(id, post);
+  res.json("Post updated successfully");
 });
 
-router.get('/users/', async (req, res) => {
-    res.json(await userController.getAll());
+router.delete("/posts/:id", async (req, res) => {
+  const id = req.params.id;
+  await postsController.delete(id);
+  res.json("Post deleted successfully");
 });
 
-router.get('/users/:id', async (req, res) => {
-    const user = await userController.getById(req.params.id);
-    res.json(user);
+router.get("/users/", async (req, res) => {
+  res.json(await userController.getAll());
 });
 
-router.post('/users/', async (req, res) => {
-    const user = req.body;
-    const data = await userController.create(user);
-    if (data != null && data != undefined) {
-        const obj = await data.get();
-        const user = { ...obj.data(), id: obj.id };
-        console.log('user from api', user);
-        const payloadAccess = {
-            type: 'access',
-            name: user.name,
-            email: user.email,
-            id: user.id
-        }
-        const payloadRefresh = {
-            type: 'refresh',
-            name: user.name,
-            email: user.email,
-            id: user.id
-        }
-        const accessToken = generateToken(payloadAccess, '15d');
-        const refreshToken = generateToken(payloadRefresh, '30d');
-        console.log(accessToken, refreshToken);
-        res.json({ accessToken, refreshToken });
+router.get("/users/:id", async (req, res) => {
+  const user = await userController.getById(req.params.id);
+  res.json(user);
+});
+
+router.post("/users/", async (req, res) => {
+  const user = req.body;
+  const data = await userController.create(user);
+  if (data != null && data != undefined) {
+    const obj = await data.get();
+    const user = { ...obj.data(), id: obj.id };
+    console.log("user from api", user);
+    const payloadAccess = {
+      type: "access",
+      name: user.name,
+      email: user.email,
+      id: user.id,
+    };
+    const payloadRefresh = {
+      type: "refresh",
+      name: user.name,
+      email: user.email,
+      id: user.id,
+    };
+    const accessToken = generateToken(payloadAccess, "15d");
+    const refreshToken = generateToken(payloadRefresh, "30d");
+    console.log(accessToken, refreshToken);
+    res.json({ accessToken, refreshToken });
+  } else {
+    console.log("User already exists");
+  }
+});
+
+router.put("/users/:id", async (req, res) => {
+  const id = req.params.id;
+  const user = req.body;
+  await userController.edit(id, user);
+  res.json("User updated successfully");
+});
+
+router.delete("/users/:id", async (req, res) => {
+  const id = req.params.id;
+  await userController.delete(id);
+  res.json("User deleted successfully");
+});
+router.post("/login", async (req, res) => {
+  const userCred = req.body;
+  try {
+    const user = await userController.signIn(userCred.email, userCred.password);
+    if (user != null && user != undefined) {
+      const payloadAccess = {
+        type: "access",
+        name: user.name,
+        email: user.email,
+        id: user.id,
+      };
+      const payloadRefresh = {
+        type: "refresh",
+        name: user.name,
+        email: user.email,
+        id: user.id,
+      };
+      const accessToken = generateToken(payloadAccess, "15d");
+      const refreshToken = generateToken(payloadRefresh, "30d");
+      res.json({ accessToken, refreshToken });
     } else {
-        console.log("User already exists");
+      res.json("User does not exist");
     }
-
+  } catch (error) {
+    res.json(error);
+  }
 });
 
-router.put('/users/:id', async (req, res) => {
-    const id = req.params.id;
-    const user = req.body;
-    await userController.edit(id, user);
-    res.json("User updated successfully");
-});
-
-router.delete('/users/:id', async (req, res) => {
-    const id = req.params.id;
-    await userController.delete(id);
-    res.json("User deleted successfully");
-});
-
-// router.post('/signup', async (req, res) => {
-//     const user = req.body;
-//     await userController.signUp(user.email, user.password);
-
-//     res.json("User created successfully");
-// });
-
-router.post('/login', async (req, res) => {
-    const userCred = req.body;
-    try {
-        const user = await userController.signIn(userCred.email, userCred.password);
-        if (user != null && user != undefined) {
-            const payloadAccess = {
-                type: 'access',
-                name: user.name,
-                email: user.email,
-                id: user.id
-            }
-            const payloadRefresh = {
-                type: 'refresh',
-                name: user.name,
-                email: user.email,
-                id: user.id
-            }
-            const accessToken = generateToken(payloadAccess, '15d');
-            const refreshToken = generateToken(payloadRefresh, '30d');
-            res.json({ accessToken, refreshToken, });
-        } else {
-            res.json("User does not exist");
-        }
-    } catch (error) {
-        res.json(error);
+router.post("/refresh", async (req, res) => {
+  const refreshToken = req.body.refreshToken;
+  try {
+    const payload = verifyToken(refreshToken, "15d");
+    const user = await userController.getById(payload.id);
+    if (user != null && user != undefined) {
+      const payloadAccess = {
+        type: "access",
+        name: user.name,
+        email: user.email,
+        id: user.id,
+      };
+      const accessToken = generateToken(payloadAccess, "15d");
+      res.json({ accessToken });
+    } else {
+      res.json("User does not exist");
     }
+  } catch (error) {
+    res.json(error);
+  }
 });
 
-router.post('/refresh', async (req, res) => {
-    const refreshToken = req.body.refreshToken;
-    try {
-        const payload = verifyToken(refreshToken, '15d');
-        const user = await userController.getById(payload.id);
-        if (user != null && user != undefined) {
-            const payloadAccess = {
-                type: 'access',
-                name: user.name,
-                email: user.email,
-                id: user.id
-            }
-            const accessToken = generateToken(payloadAccess, '15d');
-            res.json({ accessToken });
-        } else {
-            res.json("User does not exist");
-        }
-    } catch (error) {
-        res.json(error);
-    }
-});
+server.use("/", upload.none(), router);
 
-server.use('/', upload.none(), router);
-
-server.get('/', (req, res) => {
-    res.json('Hello World');
+server.get("/", (req, res) => {
+  res.json("Hello World");
 });
 
 // server.listen(port, () => {
 //     console.log(`Example app listening at http://localhost:${port}`);
 // });
 module.exports = server;
+// function extractBlog(rawResponse) {
+//   try {
+//     let text = rawResponse.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+//     // Remove markdown code block wrappers if present
+//     text = text.replace(/```json|```/g, "").trim();
+
+//     // Clean up invalid control characters
+//     text = text.replace(/[\u0000-\u001F]+/g, "");
+
+//     // Sometimes Gemini returns “fancy quotes” → normalize
+//     text = text.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+
+//     // Parse safely
+//     const parsed = JSON.parse(text);
+//     console.log("✅ Parsed Blog:", parsed);
+//     return parsed;
+//   } catch (err) {
+//     console.error("❌ Failed to parse Gemini output:", err);
+//     console.log(
+//       "Raw text was:",
+//       rawResponse.candidates?.[0]?.content?.parts?.[0]?.text
+//     );
+//     return null;
+//   }
+// }
