@@ -92,6 +92,7 @@ exports.generate = async (prompt , token) => {
     console.error("Error generating text:", err);
   }
 };
+<<<<<<< HEAD
 exports.generateEdit = async (prompt , token) => {
   // Placeholder for AI generation logic  
   try {
@@ -126,6 +127,8 @@ exports.generateEdit = async (prompt , token) => {
     console.error("Error editing text:", err);
   }
 };
+=======
+>>>>>>> 34eb787aa0783dc804b84752f503a4b3632e7732
 function extractBlog(rawResponse) {
   try {
     let text = rawResponse.candidates?.[0]?.content?.parts?.[0]?.text || "";
