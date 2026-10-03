@@ -33,13 +33,45 @@ router.post("/assistant/generate", verifyToken, async (req, res) => {
 2. Write the blog CONTENT (about ${length} words).
 3. The blog should be in the category of "${category}".
 4. content should be formatted using HTML tags.
-5. Don't include the title in the content body.
+5. Don't include the title and also <!DOCTYPE html> tag in the content body.
   Return in JSON format:
 {
   "title": "...",
   "content": "..."
 }`;
   const response = await postsController.generate(prompt);
+      res.json(response);
+    
+});
+
+router.post("/assistant/edit", verifyToken, async (req, res) => {
+  console.log(req.body,"ai body");
+  const { category, title, content, length, instruction } = req.body;
+  const prompt = `You are an assistant that edits blog posts.  
+Your task is to improve the given blog according to the user's instructions.
+
+BLOG DETAILS:
+- Current Title: "${title}"
+- Current Content (HTML formatted): 
+${content}
+
+EDITING INSTRUCTIONS:
+${instruction}
+
+REQUIREMENTS:
+1. Keep the blog in the category of "${category}".
+2. Adjust the content length to be around ${length} words (if specified).
+3. Ensure the content uses valid HTML tags.
+4. Do not include title and also <!DOCTYPE html> or <html>/<body> tags in the content.
+5. Edited item should be catchy and reflect the edits.
+6. Edited Title shoult be at least 30 words long.
+7. Only return JSON in the format below:
+
+{
+  "title": "edited title here",
+  "content": "edited content here (HTML formatted)"
+}`;
+  const response = await postsController.generateEdit(prompt);
       res.json(response);
     
 });
@@ -71,7 +103,10 @@ router.get("/posts/id/:id", async (req, res) => {
 router.put("/posts/:id", verifyToken, async (req, res) => {
   const id = req.params.id;
   const post = req.body;
-  await postsController.edit(id, post);
+  console.log(post);
+  console.log(id);
+  const data = await postsController.edit(id, post);
+  console.log(data);
   res.json("Post updated successfully");
 });
 
@@ -190,29 +225,3 @@ server.get("/", (req, res) => {
 //     console.log(`Example app listening at http://localhost:${port}`);
 // });
 module.exports = server;
-// function extractBlog(rawResponse) {
-//   try {
-//     let text = rawResponse.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-//     // Remove markdown code block wrappers if present
-//     text = text.replace(/```json|```/g, "").trim();
-
-//     // Clean up invalid control characters
-//     text = text.replace(/[\u0000-\u001F]+/g, "");
-
-//     // Sometimes Gemini returns “fancy quotes” → normalize
-//     text = text.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
-
-//     // Parse safely
-//     const parsed = JSON.parse(text);
-//     console.log("✅ Parsed Blog:", parsed);
-//     return parsed;
-//   } catch (err) {
-//     console.error("❌ Failed to parse Gemini output:", err);
-//     console.log(
-//       "Raw text was:",
-//       rawResponse.candidates?.[0]?.content?.parts?.[0]?.text
-//     );
-//     return null;
-//   }
-// }
